@@ -65,11 +65,31 @@ app.get("/countries", async (req, res) => {
   }
 });
 
-// Health y whoami
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", instance: os.hostname() });
+// Health con verificación de Neo4j
+app.get("/health", async (req, res) => {
+  let dbStatus = "unknown";
+  const session = driver.session();
+  try {
+    await session.run("RETURN 1");
+    dbStatus = "connected";
+    res.status(200).json({
+      status: "ok",
+      instance: os.hostname(),
+      database: dbStatus
+    });
+  } catch (error) {
+    dbStatus = "error: " + error.message;
+    res.status(500).json({
+      status: "fail",
+      instance: os.hostname(),
+      database: dbStatus
+    });
+  } finally {
+    await session.close();
+  }
 });
 
+// Whoami (útil para probar balanceo de carga con Traefik)
 app.get("/whoami", (req, res) => {
   res.json({ instance: os.hostname() });
 });
