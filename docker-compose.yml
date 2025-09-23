@@ -18,16 +18,11 @@ services:
       - app_net
     labels:
       - "traefik.enable=true"
-      # Dashboard protegido
-      - "traefik.http.routers.traefik.rule=Host(`ops.localhost`) && PathPrefix(`/dashboard`)"
+      # Dashboard protegido con auth básica
+      - "traefik.http.routers.traefik.rule=Host(`ops.localhost`)"
       - "traefik.http.routers.traefik.entrypoints=web"
       - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.middlewares=ops-strip,ops-auth"
-
-      # StripPrefix para limpiar /dashboard
-      - "traefik.http.middlewares.ops-strip.stripprefix.prefixes=/dashboard"
-
-      # Auth básica: user=admin, pass=admin
+      - "traefik.http.routers.traefik.middlewares=ops-auth"
       - "traefik.http.middlewares.ops-auth.basicauth.users=admin:{SHA}0DPiKuNIrrVmD8IUCuw1hQxNqZc="
 
   api:
@@ -37,8 +32,6 @@ services:
     restart: unless-stopped
     depends_on:
       - neo4j
-    ports:
-      - "3000:3000"
     environment:
       - EXPRESS_PORT=3000
       - NEO4J_URI=bolt://neo4j:7687
@@ -53,7 +46,6 @@ services:
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.services.api.loadbalancer.server.port=3000"
       - "traefik.http.routers.api.middlewares=api-ratelimit"
-
       # RateLimit: máx. 5 req/s por cliente
       - "traefik.http.middlewares.api-ratelimit.ratelimit.average=5"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=10"
